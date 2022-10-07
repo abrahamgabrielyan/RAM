@@ -6,6 +6,8 @@ localparam                      DATA_WIDTH  = 16;
 localparam                      ADDR_WIDTH  = 4;
 localparam                      TOTAL_TESTS = 2;
 localparam                      DEPTH       = 2**ADDR_WIDTH;
+localparam                      CLK_DELAY   = 10;
+localparam                      FR_DELAY   = 9;
 
 reg        [ADDR_WIDTH - 1 : 0] addr;
 reg        [DATA_WIDTH - 1 : 0] tmp_data;
@@ -14,6 +16,7 @@ reg                             clk         = 1'b1;
 reg                             wr_en;
 wire       [DATA_WIDTH - 1 : 0] data;
 
+integer                         k;
 integer                         passed_tests_count = 0;
 integer                         failed_tests_count = 0;
 integer                         skipped_tests_count = 0;
@@ -23,13 +26,17 @@ realtime                        all_tests_end;
 
 always
     begin
-        #1 clk = ~clk;
+        #CLK_DELAY clk = ~clk;
     end
 
 initial
     begin
-        addr     <= $random;
-        tmp_data <= $random;
+        for(k = 0; k <= 1023; k = k + 1)
+            begin
+                #FR_DELAY;
+                tmp_data <= k % 256;
+                addr <= k;
+            end
     end
 
 initial
