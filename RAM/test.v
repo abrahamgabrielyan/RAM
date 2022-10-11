@@ -4,7 +4,7 @@ module test();
 
 localparam                      DATA_WIDTH        = 16;
 localparam                      ADDR_WIDTH        = 4;
-localparam                      TOTAL_TESTS       = 2;
+localparam                      TOTAL_TESTS       = 3;
 localparam                      DEPTH             = 2**ADDR_WIDTH;
 localparam                      CLK_HALF_PERIOD   = 5;
 localparam                      FR_DELAY          = 9;
@@ -36,6 +36,42 @@ always
     end
 
 assign data = wr_en ? tmp_data : 'hz;
+
+task check_wr_en_change;
+    begin
+        @(posedge clk);
+        $display("\nTest check_wr_en_change started. (Testing properly work with 'wr_en' changing).");
+        start_capture = $realtime;
+        wr_en = 1'b1;
+        data_corrupted = 1'b0;
+        #0;
+
+        @(posedge clk);
+        #2;
+        addr = {(ADDR_WIDTH){1'b0}};
+        tmp_data = $random;
+
+        wr_en = 1'b0;
+
+        @(posedge clk);
+        #2;
+        mem[0] = ram.mem[0];
+        #0;
+
+        if(!(mem[0] == tmp_data))
+            begin
+                $display("Test check_wr_en_change FAILED.");
+                failed_tests_count = failed_tests_count + 1;
+            end else begin
+                $display("Test check_wr_en_change PASSED.");
+                passed_tests_count = passed_tests_count + 1;
+            end
+
+            $display("Test check_wr_en_change ended.");
+            end_capture = $realtime;
+            $display("Time elapsed for this test: %t", end_capture - start_capture);
+    end
+endtask //check_wr_en_change
 
 task check_wr_en_true;
     begin
@@ -152,6 +188,7 @@ initial
 
         check_wr_en_true;
         check_wr_en_false;
+        check_wr_en_change;
 
         if(passed_tests_count + failed_tests_count != TOTAL_TESTS)
             begin
