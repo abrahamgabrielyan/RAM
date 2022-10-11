@@ -8,18 +8,17 @@ module ram #(parameter ADDR_WIDTH = 4,
 );
 
 localparam                    DEPTH = 2**DATA_WIDTH;
-wire      [DATA_WIDTH - 1:0]  tmp_data;
 reg       [DATA_WIDTH - 1:0]  mem [0 : DEPTH - 1];
 
-always @ (posedge clk) begin
-if (wr_en)
+always @ (posedge clk)
     begin
-        mem[addr] <= data;
+        if (wr_en)
+            begin
+                mem[addr] <= data;
+            end
     end
-end
 
-assign tmp_data = mem[addr];
-assign data     = !wr_en ? tmp_data : 'hx;
+assign data = !wr_en ? mem[addr] : 'hz;
 
 endmodule
 

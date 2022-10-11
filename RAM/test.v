@@ -7,96 +7,137 @@ localparam                      ADDR_WIDTH  = 4;
 localparam                      TOTAL_TESTS = 2;
 localparam                      DEPTH       = 2**ADDR_WIDTH;
 localparam                      CLK_DELAY   = 10;
-localparam                      FR_DELAY   = 9;
+localparam                      FR_DELAY    = 9;
 
+reg                             data_corrupted;
 reg        [ADDR_WIDTH - 1 : 0] addr;
-reg        [DATA_WIDTH - 1 : 0] tmp_data;
 reg        [DATA_WIDTH - 1 : 0] mem [0 : DEPTH - 1];
 reg                             clk         = 1'b1;
 reg                             wr_en;
+reg        [DATA_WIDTH - 1 : 0] tmp_data;
 wire       [DATA_WIDTH - 1 : 0] data;
 
-integer                         k;
-integer                         passed_tests_count = 0;
-integer                         failed_tests_count = 0;
+integer                         iter;
+integer                         passed_tests_count  = 0;
+integer                         failed_tests_count  = 0;
 integer                         skipped_tests_count = 0;
 realtime                        start_capture;
 realtime                        end_capture;
 realtime                        all_tests_end;
+
+initial
+    begin
+        wr_en = 1'b0;
+    end
 
 always
     begin
         #CLK_DELAY clk = ~clk;
     end
 
-initial
-    begin
-        for(k = 0; k <= 1023; k = k + 1)
-            begin
-                #FR_DELAY;
-                tmp_data <= k % 256;
-                addr <= k;
-            end
-    end
+assign data = wr_en ? tmp_data : 'hz;
 
-initial
-    begin
-        force data = tmp_data;
-    end
-
-task check_wr_en_enabled;
+task check_wr_en_true;
     begin
         @(posedge clk);
-        $display("");
-        $display("Test check_wr_en_enabled started. (Testing properly work with 'wr_en' enabled).");
-
+        $display("\nTest check_wr_en_true started. (Testing properly work with 'wr_en' enabled).");
         start_capture = $realtime;
-        wr_en     = 1'b1;
+        wr_en = 1'b1;
+        data_corrupted = 1'b0;
+        #0;
 
-        repeat(20)@(posedge clk);
-
-        wr_en     = 1'b0;
-        mem[addr] = data;
-
-        if(data == mem[addr])
+        for(iter = 0; iter < 16; iter = iter + 1)
             begin
-                $display("Test with enabled 'wr_en' PASSED.");
-                passed_tests_count = passed_tests_count + 1;
-            end else begin
-                $display("Test with enabled 'wr_en' FAILED.");
+                @(posedge clk);
+                #2;
+                addr = iter;
+                tmp_data = $random;
+            end
+        #0;
+
+        for(iter = 0; iter < 16; iter = iter + 1)
+            begin
+                @(posedge clk);
+                mem[iter] = ram.mem[iter];
+            end
+        #0;
+
+        for(iter = 0;iter < 16;iter = iter + 1)
+            begin
+                if(mem[iter] == 'hx)
+                    begin
+                        data_corrupted = 1'b1;
+                    end
+            end
+        #0;
+
+        if(data_corrupted)
+            begin
+                $display("Test check_wr_en_true FAILED.");
                 failed_tests_count = failed_tests_count + 1;
+            end else begin
+                $display("Test check_wr_en_true PASSED.");
+                passed_tests_count = passed_tests_count + 1;
             end
 
-        $display("Test check_wr_en_enabled ended.");
-        end_capture = $realtime;
-        $display("Time elapsed for this test: %t", end_capture - start_capture);
+            $display("Test check_wr_en_true ended.");
+            end_capture = $realtime;
+            $display("Time elapsed for this test: %t", end_capture - start_capture);
     end
 endtask
 
-task check_wr_en_disabled;
+task check_wr_en_false;
     begin
         @(posedge clk);
-        $display("");
-        $display("Test check_wr_en_disabled started. (Testing properly work with 'wr_en' disabled).");
-
+        $display("\nTest check_wr_en_false started. (Testing properly work with 'wr_en' disabled).");
         start_capture = $realtime;
         wr_en = 1'b0;
+        data_corrupted = 1'b0;
+        #0;
 
-        repeat(20)@(posedge clk);
-
-        mem[addr] = data;
-
-        if(data == mem[addr])
+        for(iter = 0;iter < 16;iter = iter + 1)
             begin
-                $display("Test with enabled 'wr_en' FAILED.");
-                passed_tests_count = passed_tests_count + 1;
-            end else begin
-                $display("Test with enabled 'wr_en' PASSED.");
-                failed_tests_count = failed_tests_count + 1;
+                @(posedge clk);
+                ram.mem[iter] = 'hx;
             end
-        $display("Test check_wr_en_disabled ended.");
-        end_capture = $realtime;
-        $display("Time elapsed for this test: %t", end_capture - start_capture);
+        #0;
+
+        for(iter = 0; iter < 16; iter = iter + 1)
+            begin
+                @(posedge clk);
+                #2;
+                addr = iter;
+            end
+        #0;
+
+        for(iter = 0;iter < 16;iter = iter + 1)
+            begin
+                @(posedge clk);
+                mem[iter] = ram.mem[iter];
+            end
+        #0;
+
+        for(iter = 0;iter < 16;iter = iter + 1)
+            begin
+                if(mem[iter] == data)
+                    begin
+                        data_corrupted = 1'b1;
+                    end
+            end
+        #0;
+
+        if(data_corrupted)
+            begin
+                $display("Test check_wr_en_false FAILED.");
+                failed_tests_count = failed_tests_count + 1;
+            end else begin
+                $display("Test check_wr_en_false PASSED.");
+                passed_tests_count = passed_tests_count + 1;
+            end
+
+            $display("Test check_wr_en_false ended.");
+            end_capture = $realtime;
+            $display("Time elapsed for this test: %t", end_capture - start_capture);
     end
 endtask
 
@@ -107,8 +148,8 @@ initial
         $display("");
         $display("Starting tests...");
 
-        check_wr_en_enabled;
-        check_wr_en_disabled;
+        check_wr_en_true;
+        check_wr_en_false;
 
         if(passed_tests_count + failed_tests_count != TOTAL_TESTS)
             begin
