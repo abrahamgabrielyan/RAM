@@ -84,7 +84,7 @@ task check_wr_en_true;
             end_capture = $realtime;
             $display("Time elapsed for this test: %t", end_capture - start_capture);
     end
-endtask
+endtask //check_wr_en_true
 
 task check_wr_en_false;
     begin
@@ -139,7 +139,7 @@ task check_wr_en_false;
             end_capture = $realtime;
             $display("Time elapsed for this test: %t", end_capture - start_capture);
     end
-endtask
+endtask //check_wr_en_false
 
 initial
     begin
