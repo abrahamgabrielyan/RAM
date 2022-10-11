@@ -2,12 +2,12 @@
 
 module test();
 
-localparam                      DATA_WIDTH  = 16;
-localparam                      ADDR_WIDTH  = 4;
-localparam                      TOTAL_TESTS = 2;
-localparam                      DEPTH       = 2**ADDR_WIDTH;
-localparam                      CLK_DELAY   = 10;
-localparam                      FR_DELAY    = 9;
+localparam                      DATA_WIDTH        = 16;
+localparam                      ADDR_WIDTH        = 4;
+localparam                      TOTAL_TESTS       = 2;
+localparam                      DEPTH             = 2**ADDR_WIDTH;
+localparam                      CLK_HALF_PERIOD   = 5;
+localparam                      FR_DELAY          = 9;
 
 reg                             data_corrupted;
 reg        [ADDR_WIDTH - 1 : 0] addr;
@@ -32,7 +32,7 @@ initial
 
 always
     begin
-        #CLK_DELAY clk = ~clk;
+        #CLK_HALF_PERIOD clk = ~clk;
     end
 
 assign data = wr_en ? tmp_data : 'hz;
@@ -58,6 +58,7 @@ task check_wr_en_true;
         for(iter = 0; iter < 16; iter = iter + 1)
             begin
                 @(posedge clk);
+                #2;
                 mem[iter] = ram.mem[iter];
             end
         #0;
@@ -113,6 +114,7 @@ task check_wr_en_false;
         for(iter = 0;iter < 16;iter = iter + 1)
             begin
                 @(posedge clk);
+                #2;
                 mem[iter] = ram.mem[iter];
             end
         #0;
