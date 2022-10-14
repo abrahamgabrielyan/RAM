@@ -11,12 +11,12 @@ localparam                    DEPTH = 2**DATA_WIDTH;
 reg       [DATA_WIDTH - 1:0]  mem [0 : DEPTH - 1];
 
 always @ (posedge clk)
+begin
+    if (wr_en)
     begin
-        if (wr_en)
-            begin
-                mem[addr] <= data;
-            end
+        mem[addr] <= data;
     end
+end
 
 assign data = !wr_en ? mem[addr] : 'hz;
 
