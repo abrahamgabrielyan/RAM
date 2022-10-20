@@ -188,8 +188,7 @@ initial
 begin
     $dumpvars;
     $timeformat(-9, 3, " ns", 10);
-    $display("");
-    $display("Starting tests...");
+    $display("\nStarting tests...");
 
     check_wr_en_true;
     check_wr_en_false;
